@@ -47,7 +47,7 @@ VARIANT_ALIASES = {
 # Training hyperparameters
 # ---------------------------------------------------------------------------
 MODEL_NAME = "yolov12m"
-NUM_EPOCHS = 120
+NUM_EPOCHS = 500
 LEARNING_RATE = 0.01
 IMGSZ = 640
 BATCH_SIZE = 8           # PyTorch DataLoader (eval-side)
