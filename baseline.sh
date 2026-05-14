@@ -64,13 +64,26 @@ if [[ "${MODE}" != "skip-install" && "${MODE}" != "eval-only" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Download dataset if missing
+# 2. Download + unzip dataset if missing
 # ---------------------------------------------------------------------------
-if [[ ! -d "${DATA_AUG_DIR}" ]]; then
-    echo ">>> Downloading dataset from HuggingFace (${HF_REPO})"
-    "${PYTHON}" "${SCRIPT_DIR}/download_data.py" --repo "${HF_REPO}" --target "${DATA_DIR}"
-else
+if [[ -d "${DATA_AUG_DIR}/train" ]]; then
     echo ">>> Dataset already present at ${DATA_AUG_DIR}"
+else
+    if [[ ! -d "${DATA_AUG_DIR}" ]]; then
+        echo ">>> Downloading dataset from HuggingFace (${HF_REPO})"
+        "${PYTHON}" "${SCRIPT_DIR}/download_data.py" --repo "${HF_REPO}" --target "${DATA_DIR}"
+    fi
+
+    SNAPSHOT_DIR="${DATA_DIR}/_snapshot"
+    if [[ -d "${SNAPSHOT_DIR}" ]]; then
+        while IFS= read -r -d '' zf; do
+            dest="${zf%.zip}"
+            if [[ ! -d "${dest}" ]]; then
+                echo ">>> Unzipping $(basename "${zf}")"
+                unzip -q "${zf}" -d "${dest}"
+            fi
+        done < <(find "${SNAPSHOT_DIR}" -maxdepth 1 -name "*.zip" -print0)
+    fi
 fi
 
 mkdir -p "${WEIGHT_DIR}"
