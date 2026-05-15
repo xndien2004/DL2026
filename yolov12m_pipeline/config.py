@@ -22,7 +22,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Paths (default: current working directory)
 # ---------------------------------------------------------------------------
 WORK_ROOT = Path.cwd()
-BASE_DIR = (WORK_ROOT / "data" / "DataAug").resolve()
+BASE_DIR = Path("/home/xuandienk4@gmail.com/dien_workspace/DL2026/data/DataAug/DataDrillDetect/DataAug")
 WORK_DIR = WORK_ROOT / "yolo_dataset"
 
 
