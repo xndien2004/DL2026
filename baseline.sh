@@ -28,7 +28,7 @@ MODE="${1:-full}"
 VARIANT_ARG="${2:-mix}"
 
 DATA_DIR="${SCRIPT_DIR}/data"
-DATA_AUG_DIR="${DATA_DIR}/DataAug"
+DATA_AUG_DIR="${DATA_DIR}/DataAug/DataDrillDetect/DataAug"
 WEIGHT_DIR="${SCRIPT_DIR}/weight"
 WEIGHT_FILE="${WEIGHT_DIR}/best.pt"
 RUNS_PARENT="${SCRIPT_DIR}/detection_runs"
