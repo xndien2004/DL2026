@@ -50,10 +50,23 @@ class UltralyticsDetector(DetectionModel):
         self.yolo_run_dir = None
         self._build_model()
 
+    @staticmethod
+    def _is_valid_pt(path: str) -> bool:
+        import zipfile
+        try:
+            with zipfile.ZipFile(path, "r"):
+                return True
+        except Exception:
+            return False
+
     def _resolve_weights(self, weights: str) -> str:
         from ultralytics.utils.downloads import attempt_download_asset
         if os.path.exists(weights):
-            return weights
+            if self._is_valid_pt(weights):
+                return weights
+            print(f"[UltralyticsDetector] '{weights}' exists but is corrupt "
+                  f"(possibly a git-lfs pointer). Deleting and re-downloading...")
+            os.remove(weights)
         try:
             local = attempt_download_asset(weights)
             if local and os.path.exists(local):
@@ -61,8 +74,8 @@ class UltralyticsDetector(DetectionModel):
         except Exception as e:
             print(f"[UltralyticsDetector] WARNING download failed for {weights}: {e}")
         raise FileNotFoundError(
-            f"Weights '{weights}' not found. Download failed (often temporary network 504). "
-            f"Please retry or upload this .pt file to working directory."
+            f"Weights '{weights}' not found or corrupt. "
+            f"Download failed — retry or place the .pt file in the working directory."
         )
 
     def _build_model(self) -> None:
