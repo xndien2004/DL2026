@@ -1,40 +1,30 @@
 """Parse COCO annotations and materialize a YOLO-flat directory layout."""
-
 from __future__ import annotations
-
 import json as _json
 import os
 import shutil
 from collections import defaultdict
 from pathlib import Path
 from typing import Iterable
-
 import pandas as pd
 
-from . import config
-from .config import (
-    BASE_DIR, DATA_VARIANT, IMG_EXTENSIONS, NUM_CLASSES,
-    SPLITS, VARIANT_ALIASES, WORK_DIR,
-)
+IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
+VARIANT_ALIASES = {
+    "collect": "mix", "all": "mix", "mixed": "mix",
+    "bright_field": "bright", "bf": "bright",
+    "dark_field": "dark", "df": "dark",
+}
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-def _norm_variant(v: str | None) -> str:
-    raw = str(v or DATA_VARIANT).strip().lower()
+def _norm_variant(v, default="mix"):
+    raw = str(v or default).strip().lower()
     norm = VARIANT_ALIASES.get(raw, raw)
     assert norm in {"mix", "bright", "dark"}, f"Invalid variant: {norm}"
     return norm
 
 
-def _resolve_split_root(base_dir: Path | str, split: str) -> Path:
-    aliases = {
-        "train": ["train"],
-        "val":   ["val", "valid"],
-        "valid": ["valid", "val"],
-        "test":  ["test"],
-    }
+def _resolve_split_root(base_dir, split):
+    aliases = {"train": ["train"], "val": ["val", "valid"], "valid": ["valid", "val"], "test": ["test"]}
     for s in aliases.get(split, [split]):
         p = Path(base_dir) / s
         if p.is_dir():
@@ -42,20 +32,14 @@ def _resolve_split_root(base_dir: Path | str, split: str) -> Path:
     return Path(base_dir) / split
 
 
-def _infer_lighting(fn: str, path: str) -> str:
+def _infer_lighting(fn, path):
     h = (str(path).replace("\\", "/") + " " + str(fn)).lower()
-    if "/bright_field/" in h or "_bright_" in h:
-        return "bright"
-    if "/dark_field/" in h or "_dark_" in h:
-        return "dark"
+    if "/bright_field/" in h or "_bright_" in h: return "bright"
+    if "/dark_field/" in h or "_dark_" in h: return "dark"
     return "other"
 
 
-# ---------------------------------------------------------------------------
-# COCO parsing
-# ---------------------------------------------------------------------------
-def parse_coco_collect(base_dir: Path | str, split: str,
-                       data_variant: str = DATA_VARIANT) -> tuple[list[dict], dict[str, str]]:
+def parse_coco_collect(base_dir, split, data_variant="mix", num_classes=5):
     """Walk a split folder, merge image metadata + COCO annotations."""
     variant = _norm_variant(data_variant)
     root = _resolve_split_root(base_dir, split)
@@ -89,7 +73,7 @@ def parse_coco_collect(base_dir: Path | str, split: str,
             ann_paths = [str(p) for p in sorted(root.glob("*/_annotations.coco.json"))]
     assert ann_paths, f"No annotations in: {root}"
 
-    keep_ids = set(range(1, NUM_CLASSES + 1))
+    keep_ids = set(range(1, num_classes + 1))
     img_meta: dict[str, dict[str, int]] = {}
     raw_anns: dict[str, list] = defaultdict(list)
     for ap in ann_paths:
@@ -139,11 +123,8 @@ def parse_coco_collect(base_dir: Path | str, split: str,
     return records, file_map
 
 
-# ---------------------------------------------------------------------------
-# YOLO directory layout
-# ---------------------------------------------------------------------------
 def prepare_yolo_flat_dir(split: str, file_map: dict[str, str],
-                          records: Iterable[dict], work_dir: Path = WORK_DIR) -> None:
+                          records: Iterable[dict], work_dir) -> None:
     """Symlink (or copy) images and write YOLO-format .txt labels for one split."""
     img_out = os.path.join(work_dir, split, "images")
     lbl_out = os.path.join(work_dir, split, "labels")
@@ -181,21 +162,19 @@ def prepare_yolo_flat_dir(split: str, file_map: dict[str, str],
     print(f"  {split}: {created} images+labels -> {img_out}")
 
 
-def build_dataset(base_dir: Path | None = None, work_dir: Path | None = None,
-                  data_variant: str | None = None) -> pd.DataFrame:
+def build_dataset(base_dir, work_dir, data_variant="mix", num_classes=5,
+                  splits=("train", "val", "test")) -> pd.DataFrame:
     """Run full data prep: parse COCO + materialize YOLO dirs."""
-    base_dir = base_dir or config.BASE_DIR
-    work_dir = work_dir or config.WORK_DIR
-    data_variant = data_variant or config.DATA_VARIANT
-
     all_records: list[dict] = []
     all_file_maps: dict[str, dict[str, str]] = {}
-    for split in SPLITS:
-        records, all_file_maps[split] = parse_coco_collect(base_dir, split, data_variant=data_variant)
+    for split in splits:
+        records, all_file_maps[split] = parse_coco_collect(
+            base_dir, split, data_variant=data_variant, num_classes=num_classes
+        )
         all_records.extend(records)
         print(f"  [{split}] {len(records)} records")
 
-    for split in SPLITS:
+    for split in splits:
         prepare_yolo_flat_dir(
             split, all_file_maps[split],
             [r for r in all_records if r["split"] == split],
@@ -207,10 +186,9 @@ def build_dataset(base_dir: Path | None = None, work_dir: Path | None = None,
     return data
 
 
-def split_dataframes(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Filter placeholder class==0 rows and split by 'split' column."""
+def split_dataframes(df: pd.DataFrame, val_split="val"):
     train_df = df[df["split"] == "train"].query("`class` > 0").copy()
-    valid_df = df[df["split"] == "val"].query("`class` > 0").copy()
+    valid_df = df[df["split"] == val_split].query("`class` > 0").copy()
     test_df = df[df["split"] == "test"].query("`class` > 0").copy()
     for name, d in [("Train", train_df), ("Val", valid_df), ("Test", test_df)]:
         print(f"{name}: {len(d)} ann, {d['file'].nunique()} imgs")

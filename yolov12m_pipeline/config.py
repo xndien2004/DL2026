@@ -34,7 +34,7 @@ CLASS_NAMES = ["Broken", "Chipped", "Scratched", "Severe_Rust", "Tip_Wear"]
 NUM_CLASSES = len(CLASS_NAMES)
 LABEL_TO_NAME = {i + 1: name for i, name in enumerate(CLASS_NAMES)}
 
-SPLITS = ["train", "valid", "test"]
+SPLITS = ["train", "val", "test"]
 IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
 VARIANT_ALIASES = {
     "collect": "mix", "all": "mix", "mixed": "mix",

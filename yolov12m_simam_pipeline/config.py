@@ -26,7 +26,7 @@ BASE_DIR = (WORK_ROOT / "data" / "DataAug").resolve()
 WORK_DIR = WORK_ROOT / "yolo_dataset"
 
 # Pretrained checkpoint to fine-tune from. Override via CLI or env var.
-PRETRAINED_CKPT = str((WORK_ROOT / "weight" / "best.pt").resolve())
+PRETRAINED_CKPT = str((WORK_ROOT / "runs" / "yolov12m" / "weights" / "best.pt").resolve())
 
 
 # ---------------------------------------------------------------------------

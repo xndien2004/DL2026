@@ -18,7 +18,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from . import config as cfg
-from .data_preparation import build_dataset
+from core.data_preparation import build_dataset
 from .simam import create_custom_model_yaml, inject_simam
 from .ultralytics_detector import register_simam
 
@@ -270,6 +270,8 @@ def main(checkpoint: str | None = None, *, retrain_epochs: int = 30, **overrides
         base_dir=cfg.BASE_DIR,
         work_dir=cfg.WORK_DIR,
         data_variant=cfg.DATA_VARIANT,
+        num_classes=cfg.NUM_CLASSES,
+        splits=cfg.SPLITS,
     )
 
     train_model_name = _setup_model_name()

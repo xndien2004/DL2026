@@ -11,24 +11,26 @@ import pandas as pd
 import seaborn as sns
 import torch
 
-from .config import CLASS_NAMES, LABEL_TO_NAME, NUM_CLASSES, WORK_DIR
+
+COLOR_MAP = plt.cm.get_cmap("tab10", 10)
 
 
-COLOR_MAP = plt.cm.get_cmap("tab10", NUM_CLASSES)
-
-
-def draw_bboxes(ax, rows_or_boxes, labels=None, scores=None) -> None:
+def draw_bboxes(ax, rows_or_boxes, labels=None, scores=None,
+                label_to_name=None, color_map=None) -> None:
     """Draw bounding boxes. Accepts a DataFrame or (boxes, labels, scores) arrays."""
+    ltn = label_to_name or {}
+    cmap = color_map or COLOR_MAP
+
     if isinstance(rows_or_boxes, pd.DataFrame):
         for _, row in rows_or_boxes.iterrows():
             cls_id = int(row["class"])
             if cls_id <= 0:
                 continue
             x1, y1, x2, y2 = row["xmin"], row["ymin"], row["xmax"], row["ymax"]
-            color = COLOR_MAP(cls_id - 1)
+            color = cmap(cls_id - 1)
             ax.add_patch(matplotlib.patches.Rectangle(
                 (x1, y1), x2 - x1, y2 - y1, lw=2, ec=color, fc="none"))
-            ax.text(x1, y1 - 3, LABEL_TO_NAME.get(cls_id, "?"),
+            ax.text(x1, y1 - 3, ltn.get(cls_id, "?"),
                     color=color, fontsize=9, weight="bold",
                     bbox=dict(facecolor="white", alpha=0.7, edgecolor="none", pad=0.5))
         return
@@ -36,17 +38,18 @@ def draw_bboxes(ax, rows_or_boxes, labels=None, scores=None) -> None:
     for i, box in enumerate(np.array(rows_or_boxes)):
         x1, y1, x2, y2 = box
         cls_id = int(labels[i]) if labels is not None else 0
-        color = COLOR_MAP(cls_id - 1) if 0 < cls_id <= NUM_CLASSES else "lime"
+        color = cmap(cls_id - 1) if cls_id > 0 else "lime"
         ax.add_patch(matplotlib.patches.Rectangle(
             (x1, y1), x2 - x1, y2 - y1, lw=2, ec=color, fc="none"))
-        name = LABEL_TO_NAME.get(cls_id, str(cls_id))
+        name = ltn.get(cls_id, str(cls_id))
         if scores is not None:
             name = f"{name} {float(scores[i]):.2f}"
         ax.text(x1, y1 - 3, name, color=color, fontsize=9, weight="bold",
                 bbox=dict(facecolor="white", alpha=0.7, edgecolor="none", pad=0.5))
 
 
-def show_image(img, rows_or_boxes=None, labels=None, scores=None, ax=None, title=None):
+def show_image(img, rows_or_boxes=None, labels=None, scores=None, ax=None, title=None,
+               label_to_name=None, color_map=None):
     """Show an image (numpy or torch tensor) with optional bboxes."""
     if ax is None:
         _, ax = plt.subplots(figsize=(18, 10))
@@ -54,22 +57,21 @@ def show_image(img, rows_or_boxes=None, labels=None, scores=None, ax=None, title
         img = img.permute(1, 2, 0).cpu().numpy()
     ax.imshow(img, cmap="binary")
     if rows_or_boxes is not None:
-        draw_bboxes(ax, rows_or_boxes, labels, scores)
+        draw_bboxes(ax, rows_or_boxes, labels, scores,
+                    label_to_name=label_to_name, color_map=color_map)
     if title:
         ax.set_title(title, fontsize=9)
     ax.axis("off")
     return ax
 
 
-# ---------------------------------------------------------------------------
-# EDA
-# ---------------------------------------------------------------------------
-def plot_class_distribution(df: pd.DataFrame, save_path: str | None = None) -> None:
+def plot_class_distribution(df: pd.DataFrame, class_names, label_to_name,
+                            save_path: str | None = None) -> None:
     """Two-panel: overall class counts + stacked-by-split."""
     fig, axes = plt.subplots(1, 2, figsize=(18, 5))
 
-    class_counts = df["class"].map(LABEL_TO_NAME).value_counts().sort_index()
-    colors_eda = sns.color_palette("Set2", len(CLASS_NAMES))
+    class_counts = df["class"].map(label_to_name).value_counts().sort_index()
+    colors_eda = sns.color_palette("Set2", len(class_names))
     class_counts.plot(kind="bar", ax=axes[0], color=colors_eda, edgecolor="black")
     axes[0].set_title("Overall Defect Class Distribution", fontsize=14, weight="bold")
     axes[0].set_xlabel("Defect Class")
@@ -79,7 +81,7 @@ def plot_class_distribution(df: pd.DataFrame, save_path: str | None = None) -> N
         axes[0].text(i, v + 5, str(v), ha="center", fontsize=10, weight="bold")
 
     pivot_eda = df.copy()
-    pivot_eda["class_name"] = pivot_eda["class"].map(LABEL_TO_NAME)
+    pivot_eda["class_name"] = pivot_eda["class"].map(label_to_name)
     ct = pivot_eda.groupby(["split", "class_name"]).size().unstack(fill_value=0)
     ct = ct.reindex(columns=sorted(ct.columns))
     ct.plot(kind="bar", stacked=True, ax=axes[1], colormap="Set2", edgecolor="black")
@@ -94,7 +96,8 @@ def plot_class_distribution(df: pd.DataFrame, save_path: str | None = None) -> N
     plt.show()
 
 
-def plot_sample_grid(train_df: pd.DataFrame, work_dir=WORK_DIR, n: int = 9, seed: int = 42) -> None:
+def plot_sample_grid(train_df: pd.DataFrame, work_dir, n: int = 9, seed: int = 42,
+                     label_to_name=None, color_map=None) -> None:
     """3x3 grid of train images with ground-truth boxes."""
     rng = np.random.default_rng(seed)
     files = train_df["file"].unique()
@@ -109,7 +112,8 @@ def plot_sample_grid(train_df: pd.DataFrame, work_dir=WORK_DIR, n: int = 9, seed
             continue
         fname = chosen[idx]
         img = plt.imread(os.path.join(work_dir, "train", "images", fname + ".jpg"))
-        show_image(img, train_df[train_df["file"] == fname], ax=ax, title=fname)
+        show_image(img, train_df[train_df["file"] == fname], ax=ax, title=fname,
+                   label_to_name=label_to_name, color_map=color_map)
     plt.suptitle("Sample Training Images with Ground Truth", fontsize=16, weight="bold", y=1.01)
     plt.tight_layout()
     plt.show()

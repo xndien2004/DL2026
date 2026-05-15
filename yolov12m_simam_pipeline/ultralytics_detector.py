@@ -13,7 +13,7 @@ import yaml as _yaml
 
 from . import config
 from .config import BASE_DIR
-from .detection_base import DetectionModel
+from core.detection_base import DetectionModel
 
 
 # ---------------------------------------------------------------------------

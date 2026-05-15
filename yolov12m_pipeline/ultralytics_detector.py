@@ -11,7 +11,7 @@ import torch
 import yaml
 
 from .config import BASE_DIR
-from .detection_base import DetectionModel
+from core.detection_base import DetectionModel
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ class UltralyticsDetector(DetectionModel):
         cfg = {
             "path": str(base_dir),
             "train": "train/images",
-            "val": "valid/images",
+            "val": "val/images",
             "test": "test/images",
             "nc": len(self.class_names),
             "names": list(self.class_names),
@@ -100,7 +100,7 @@ class UltralyticsDetector(DetectionModel):
             data=self.yolo_data_yaml, epochs=epochs, imgsz=imgsz, batch=batch,
             lr0=lr, lrf=0.01, optimizer=optimizer, weight_decay=weight_decay,
             patience=patience, save=True, save_period=max(epochs // 4, 1),
-            project="detection_runs", name=self.model_name, exist_ok=True,
+            project="runs", name=self.model_name, exist_ok=True,
             device=device_str, workers=_workers, seed=42, verbose=True, plots=True,
             hsv_h=aug.get("hsv_h", 0.015), hsv_s=aug.get("hsv_s", 0.7),
             hsv_v=aug.get("hsv_v", 0.4), degrees=aug.get("degrees", 10.0),
@@ -121,7 +121,7 @@ class UltralyticsDetector(DetectionModel):
         print(f"\n{self.model_name} training completed!")
 
     def _load_training_csv(self) -> None:
-        candidates = [self.yolo_run_dir, os.path.join("detection_runs", self.model_name)]
+        candidates = [self.yolo_run_dir, os.path.join("runs", self.model_name)]
         for d in filter(None, candidates):
             csv_path = os.path.join(d, "results.csv")
             if not os.path.exists(csv_path):

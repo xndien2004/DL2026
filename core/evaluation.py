@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .config import LABEL_TO_NAME
 from .metrics import match_dets_gts
 
 
 def export_predictions_csv(model_name: str, dets, gts, image_ids,
                            iou_thr: float, score_thr: float,
-                           csv_out: str) -> pd.DataFrame:
+                           csv_out: str, label_to_name=None) -> pd.DataFrame:
     """Write a long-format CSV with one row per TP / FP / FN.
 
     Returns the DataFrame for further inspection.
     """
+    ltn = label_to_name or {}
     rows = []
     for img_idx, (det, gt, fid) in enumerate(zip(dets, gts, image_ids)):
         base = {"model_name": model_name, "image_id": fid}
@@ -24,11 +24,11 @@ def export_predictions_csv(model_name: str, dets, gts, image_ids,
             rows.append({
                 **base, "result": "TP",
                 "gt_class": int(gl[gi]),
-                "gt_class_name": LABEL_TO_NAME.get(int(gl[gi])),
+                "gt_class_name": ltn.get(int(gl[gi])),
                 "gt_x1": gb[gi][0], "gt_y1": gb[gi][1],
                 "gt_x2": gb[gi][2], "gt_y2": gb[gi][3],
                 "pred_class": int(pl[pi]),
-                "pred_class_name": LABEL_TO_NAME.get(int(pl[pi])),
+                "pred_class_name": ltn.get(int(pl[pi])),
                 "pred_x1": pb[pi][0], "pred_y1": pb[pi][1],
                 "pred_x2": pb[pi][2], "pred_y2": pb[pi][3],
                 "pred_score": float(ps[pi]), "iou": iou_val,
@@ -39,7 +39,7 @@ def export_predictions_csv(model_name: str, dets, gts, image_ids,
             rows.append({
                 **base, "result": "FP",
                 "pred_class": int(pl[pi]),
-                "pred_class_name": LABEL_TO_NAME.get(int(pl[pi])),
+                "pred_class_name": ltn.get(int(pl[pi])),
                 "pred_x1": pb[pi][0], "pred_y1": pb[pi][1],
                 "pred_x2": pb[pi][2], "pred_y2": pb[pi][3],
                 "pred_score": float(ps[pi]),
@@ -50,7 +50,7 @@ def export_predictions_csv(model_name: str, dets, gts, image_ids,
             rows.append({
                 **base, "result": "FN",
                 "gt_class": int(gl[gi]),
-                "gt_class_name": LABEL_TO_NAME.get(int(gl[gi])),
+                "gt_class_name": ltn.get(int(gl[gi])),
                 "gt_x1": gb[gi][0], "gt_y1": gb[gi][1],
                 "gt_x2": gb[gi][2], "gt_y2": gb[gi][3],
             })

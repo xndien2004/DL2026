@@ -12,9 +12,6 @@ import torch
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader
 
-from . import config
-from .config import BATCH_SIZE
-
 
 class DrillData(torch.utils.data.Dataset):
     """One entry per unique image; bboxes aggregated from dataframe rows."""
@@ -66,15 +63,12 @@ def collate_fn(batch):
     return tuple(zip(*batch))
 
 
-def make_dataset(df: pd.DataFrame, split: str, work_dir=None) -> DrillData:
-    work_dir = work_dir or config.WORK_DIR
+def make_dataset(df: pd.DataFrame, split: str, work_dir) -> DrillData:
     return DrillData(df, os.path.join(work_dir, split, "images") + "/", get_transform())
 
 
 def build_dataloaders(train_df: pd.DataFrame, valid_df: pd.DataFrame, test_df: pd.DataFrame,
-                      batch_size: int = BATCH_SIZE, num_workers: int = 6,
-                      work_dir=None) -> dict:
-    work_dir = work_dir or config.WORK_DIR
+                      batch_size: int, num_workers: int = 6, work_dir=None) -> dict:
     train_dataset = make_dataset(train_df, "train", work_dir=work_dir)
     valid_dataset = make_dataset(valid_df, "val", work_dir=work_dir)
     test_dataset = make_dataset(test_df, "test", work_dir=work_dir)
@@ -87,7 +81,7 @@ def build_dataloaders(train_df: pd.DataFrame, valid_df: pd.DataFrame, test_df: p
                               num_workers=num_workers, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
                              num_workers=num_workers, collate_fn=collate_fn)
-    print(f"Loaders: train={len(train_loader)}, valid={len(valid_loader)}, test={len(test_loader)}")
+    print(f"Loaders: train={len(train_loader)}, val={len(valid_loader)}, test={len(test_loader)}")
     return {
         "train_dataset": train_dataset, "valid_dataset": valid_dataset, "test_dataset": test_dataset,
         "train_loader": train_loader, "valid_loader": valid_loader, "test_loader": test_loader,

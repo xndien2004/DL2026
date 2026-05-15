@@ -14,7 +14,6 @@ import torchvision
 import torchvision.transforms as T
 from tqdm.auto import tqdm
 
-from .config import CLASS_NAMES, DEVICE
 from .visualization import show_image
 
 
@@ -41,8 +40,9 @@ class DetectionModel(ABC):
     @classmethod
     def create(cls, model_name: str, num_classes: int = 5,
                class_names=None, device=None, **kwargs) -> "DetectionModel":
-        class_names = class_names or CLASS_NAMES
-        device = device or DEVICE
+        if class_names is None:
+            raise ValueError("class_names must be provided")
+        device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if model_name not in cls._registry:
             raise ValueError(
                 f"Model '{model_name}' not found. Available: {sorted(cls._registry.keys())}"
@@ -64,6 +64,10 @@ class DetectionModel(ABC):
     @staticmethod
     def _to_numpy(v):
         return v.cpu().numpy() if torch.is_tensor(v) else np.array(v)
+
+    @property
+    def _label_to_name(self):
+        return {i + 1: name for i, name in enumerate(self.class_names)}
 
     def evaluate(self, dataset, iou_threshold: float = 0.5, score_threshold: float = 0.3):
         self.model.eval()
@@ -182,6 +186,7 @@ class DetectionModel(ABC):
                               score_threshold: float = 0.3) -> None:
         os.makedirs(save_dir, exist_ok=True)
         self.model.eval()
+        label_to_name = self._label_to_name
         for sample_file in test_df["file"].unique()[:n_examples]:
             img_path = os.path.join(base_dir, "test", "images", sample_file + ".jpg")
             img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
@@ -215,8 +220,10 @@ class DetectionModel(ABC):
                 boxes, labels, scores = np.zeros((0, 4)), np.zeros((0,), dtype=int), np.zeros((0,))
 
             fig, (ax_gt, ax_pred) = plt.subplots(1, 2, figsize=(16, 6))
-            show_image(img, test_df[test_df["file"] == sample_file], ax=ax_gt, title="Ground Truth")
-            show_image(img, boxes, labels, scores, ax=ax_pred, title=f"Prediction ({self.model_name})")
+            show_image(img, test_df[test_df["file"] == sample_file], ax=ax_gt,
+                       title="Ground Truth", label_to_name=label_to_name)
+            show_image(img, boxes, labels, scores, ax=ax_pred,
+                       title=f"Prediction ({self.model_name})", label_to_name=label_to_name)
             short = sample_file.split(".rf.")[0] if ".rf." in sample_file else sample_file
             fig.suptitle(short[-50:], fontsize=11)
             plt.tight_layout()
