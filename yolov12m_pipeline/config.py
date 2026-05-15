@@ -47,12 +47,12 @@ VARIANT_ALIASES = {
 # Training hyperparameters
 # ---------------------------------------------------------------------------
 MODEL_NAME = "yolov12m"
-NUM_EPOCHS = 500
+NUM_EPOCHS = 400
 LEARNING_RATE = 0.01
 IMGSZ = 640
 BATCH_SIZE = 8           # PyTorch DataLoader (eval-side)
-BATCH_SIZE_YOLO = 128     # Ultralytics trainer batch
-PATIENCE = 50
+BATCH_SIZE_YOLO = 32     # Ultralytics trainer batch
+PATIENCE = 100
 IOU_THRESHOLD = 0.5
 SCORE_THRESHOLD = 0.2
 N_EXAMPLES = 100
