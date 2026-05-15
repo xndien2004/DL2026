@@ -14,6 +14,3 @@ module load GCCcore/13.2.0
 module load OpenBLAS/0.3.24-GCC-13.2.0
 module load Python/3.11.5-GCCcore-13.2.0
 
-pip install --upgrade pip
-pip install -r requirements.txt
-

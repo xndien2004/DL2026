@@ -29,7 +29,7 @@ cd "${SCRIPT_DIR}"
 MODE="${1:-full}"
 VARIANT_ARG="${2:-mix}"
 
-DATA_AUG_DIR="${SCRIPT_DIR}/data/DataAug"
+DATA_AUG_DIR="${SCRIPT_DIR}/data/DataAug/DataDrillDetect/DataAug"
 RUNS_PARENT="${SCRIPT_DIR}/runs"
 PYTHON="${PYTHON:-python3}"
 
