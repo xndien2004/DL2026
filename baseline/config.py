@@ -55,7 +55,7 @@ BATCH_SIZE_YOLO = 32     # Ultralytics trainer batch
 PATIENCE = 100
 IOU_THRESHOLD = 0.5
 SCORE_THRESHOLD = 0.2
-N_EXAMPLES = 100
+N_EXAMPLES = 50
 
 AUGMENTATION = {
     "hsv_h": 0.015, "hsv_s": 0.5, "hsv_v": 0.3,
