@@ -23,34 +23,77 @@ def _norm_variant(v, default="mix"):
     return norm
 
 
-def _find_data_root(base_dir) -> Path:
-    """Return the directory that actually contains train/val/test splits.
+_SPLIT_ALIASES = {
+    "train": ["train"],
+    "val":   ["val", "valid"],
+    "valid": ["valid", "val"],
+    "test":  ["test"],
+}
+_LIGHTING_DIRS = ["Bright_Field", "Dark_Field"]
 
-    If base_dir itself has a 'train' child we use it as-is.  Otherwise we
-    walk up to 4 levels deep looking for the first directory that contains
-    both a 'train' folder and either 'val' or 'valid'.  This handles datasets
-    that are nested one or more levels inside the supplied base_dir (e.g.
-    base_dir/DataDrillDetect/DataAug/train/…).
+
+def _collect_image_roots(base_dir: Path, split: str, variant: str) -> list[Path]:
+    """Return directories to scan for images.
+
+    Handles two common layouts:
+    A (split-first):    base/train/Bright_Field, base/train/Dark_Field
+    B (lighting-first): base/Bright_Field/train, base/Dark_Field/train
+
+    Falls back to the raw split dir if lighting sub-dirs are absent.
     """
-    base = Path(base_dir)
-    if (base / "train").is_dir():
-        return base
-    for candidate in sorted(base.rglob("train")):
-        parent = candidate.parent
-        if (parent / "val").is_dir() or (parent / "valid").is_dir():
-            print(f"[data_preparation] auto-discovered data root: {parent}")
-            return parent
-    return base
+    want_lighting = []
+    if variant in {"mix", "bright"}:
+        want_lighting.append("Bright_Field")
+    if variant in {"mix", "dark"}:
+        want_lighting.append("Dark_Field")
+
+    split_names = _SPLIT_ALIASES.get(split, [split])
+
+    # --- Layout A: split-first ---
+    for s in split_names:
+        split_dir = base_dir / s
+        if not split_dir.is_dir():
+            continue
+        if not want_lighting:
+            return [split_dir]
+        found = [split_dir / lf for lf in want_lighting if (split_dir / lf).is_dir()]
+        return found if found else [split_dir]
+
+    # --- Layout B: lighting-first ---
+    results: list[Path] = []
+    for lf in want_lighting:
+        lf_dir = base_dir / lf
+        if not lf_dir.is_dir():
+            continue
+        for s in split_names:
+            split_sub = lf_dir / s
+            if split_sub.is_dir():
+                results.append(split_sub)
+                break
+        else:
+            results.append(lf_dir)
+
+    if results:
+        return results
+
+    # --- Fallback: scan one level deeper ---
+    for child in sorted(base_dir.iterdir()):
+        if child.is_dir():
+            deeper = _collect_image_roots(child, split, variant)
+            if deeper:
+                print(f"[data_preparation] auto-discovered data root: {child}")
+                return deeper
+
+    return []
 
 
-def _resolve_split_root(base_dir, split):
-    aliases = {"train": ["train"], "val": ["val", "valid"], "valid": ["valid", "val"], "test": ["test"]}
-    root = _find_data_root(base_dir)
-    for s in aliases.get(split, [split]):
-        p = root / s
+def _resolve_split_root(base_dir: Path, split: str) -> Path:
+    """Return the split subdirectory (handles val/valid aliasing)."""
+    for s in _SPLIT_ALIASES.get(split, [split]):
+        p = Path(base_dir) / s
         if p.is_dir():
             return p
-    return root / split
+    return Path(base_dir) / split
 
 
 def _infer_lighting(fn, path):
@@ -63,16 +106,19 @@ def _infer_lighting(fn, path):
 def parse_coco_collect(base_dir, split, data_variant="mix", num_classes=5):
     """Walk a split folder, merge image metadata + COCO annotations."""
     variant = _norm_variant(data_variant)
-    base_dir = _find_data_root(base_dir)
-    root = _resolve_split_root(base_dir, split)
+    base_dir = Path(base_dir)
 
-    cands: list[Path] = []
-    if variant in {"mix", "bright"}:
-        cands.append(root / "Bright_Field")
-    if variant in {"mix", "dark"}:
-        cands.append(root / "Dark_Field")
-    img_roots = [str(p) for p in cands if p.is_dir()] or ([str(root)] if root.is_dir() else [])
-    assert img_roots, f"No image root for {split}/{variant}"
+    img_root_paths = _collect_image_roots(base_dir, split, variant)
+    if not img_root_paths:
+        contents = sorted(p.name for p in base_dir.iterdir()) if base_dir.is_dir() else []
+        raise AssertionError(
+            f"No image root for {split}/{variant}\n"
+            f"  base_dir : {base_dir}\n"
+            f"  contents : {contents}\n"
+            f"  Tip: pass --base-dir pointing to the folder that contains train/val/test."
+        )
+
+    img_roots = [str(p) for p in img_root_paths]
 
     file_map: dict[str, str] = {}
     for r in img_roots:
@@ -81,19 +127,22 @@ def parse_coco_collect(base_dir, split, data_variant="mix", num_classes=5):
                 if fn.lower().endswith(IMG_EXTENSIONS):
                     file_map.setdefault(fn, os.path.join(dp, fn))
 
-    mapping = {"bright": ["Bright_Field"], "dark": ["Dark_Field"], "mix": ["Bright_Field", "Dark_Field"]}
-    ann = root / "_annotations.coco.json"
-    if ann.exists():
-        ann_paths = [str(ann)]
-    else:
-        ann_paths = [
-            str(root / f / "_annotations.coco.json")
-            for f in mapping[variant]
-            if (root / f / "_annotations.coco.json").exists()
-        ]
-        if not ann_paths:
-            ann_paths = [str(p) for p in sorted(root.glob("*/_annotations.coco.json"))]
-    assert ann_paths, f"No annotations in: {root}"
+    # Find annotation files — look in each image root and its parent
+    seen_anns: set[str] = set()
+    ann_paths: list[str] = []
+    for r in img_root_paths:
+        for check in [r, r.parent]:
+            a = check / "_annotations.coco.json"
+            if a.exists() and str(a) not in seen_anns:
+                ann_paths.append(str(a))
+                seen_anns.add(str(a))
+    if not ann_paths:
+        for r in img_root_paths:
+            for a in sorted(r.glob("**/_annotations.coco.json")):
+                if str(a) not in seen_anns:
+                    ann_paths.append(str(a))
+                    seen_anns.add(str(a))
+    assert ann_paths, f"No annotations in: {img_roots}"
 
     keep_ids = set(range(1, num_classes + 1))
     img_meta: dict[str, dict[str, int]] = {}
