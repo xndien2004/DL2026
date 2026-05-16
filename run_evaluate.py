@@ -7,8 +7,8 @@ Examples:
     python run_evaluate.py best.pt --base-dir ./data/DataAug --work-dir ./yolo_dataset
 """
 
-from yolov12m_simam_pipeline.cli import parse_eval_args
-from yolov12m_simam_pipeline.evaluate import main
+from new.cli import parse_eval_args
+from new.evaluate import main
 
 
 if __name__ == "__main__":

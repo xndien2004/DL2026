@@ -29,7 +29,6 @@ def find_checkpoint(model_name: str) -> str:
     variant = cfg.DATA_VARIANT
     candidates = [
         str(cfg.WORK_ROOT / "output" / f"yolov12m_new_{variant}" / "weights" / "best.pt"),
-        str(cfg.WORK_ROOT / "runs" / model_name / "weights" / "best.pt"),
         cfg.PRETRAINED_CKPT,
     ]
     for p in candidates:

@@ -6,8 +6,8 @@ Examples:
     python run_baseline_train.py --base-dir ./data/DataAug --variant bright
 """
 
-from yolov12m_pipeline.cli import parse_train_args
-from yolov12m_pipeline.train import main
+from baseline.cli import parse_train_args
+from baseline.train import main
 
 
 if __name__ == "__main__":

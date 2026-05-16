@@ -21,8 +21,6 @@ def _add_common(parser: argparse.ArgumentParser, flags: dict[str, str]) -> None:
     if "pretrained" in flags:   add("--pretrained",   type=str,   help="Pretrained .pt checkpoint to fine-tune from")
     if "custom_arch" in flags:  add("--custom-arch",  dest="custom_arch", type=str, choices=["", "simam"])
     if "skip_phase12" in flags: add("--skip-phase12", dest="skip_phase12", action="store_true", default=None)
-    if "pseudo_conf" in flags:  add("--pseudo-conf",  dest="pseudo_conf", type=float)
-    if "pseudo_iou" in flags:   add("--pseudo-iou",   dest="pseudo_iou",  type=float)
 
 
 def _to_overrides(args: argparse.Namespace, flags: dict[str, str]) -> dict:

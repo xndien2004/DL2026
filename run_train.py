@@ -9,8 +9,8 @@ Examples:
     python run_train.py --skip-phase12
     python run_train.py --pretrained ./output/yolov12m_base_mix/weights/best.pt
 """
-from yolov12m_simam_pipeline.cli import parse_train_args
-from yolov12m_simam_pipeline.train import main
+from new.cli import parse_train_args
+from new.train import main
 
 if __name__ == "__main__":
     main(**parse_train_args())

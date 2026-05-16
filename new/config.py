@@ -109,6 +109,13 @@ def apply_overrides(**kwargs) -> None:
         mod.NUM_CLASSES = len(mod.CLASS_NAMES)
         mod.LABEL_TO_NAME = {i + 1: name for i, name in enumerate(mod.CLASS_NAMES)}
 
+    # Auto-update PRETRAINED_CKPT when variant changes (unless user set it explicitly)
+    if "DATA_VARIANT" in kwargs and "PRETRAINED_CKPT" not in kwargs:
+        variant = mod.DATA_VARIANT
+        mod.PRETRAINED_CKPT = str(
+            (mod.WORK_ROOT / "output" / f"yolov12m_base_{variant}" / "weights" / "best.pt").resolve()
+        )
+
 
 def print_config() -> None:
     print(f"BASE_DIR={BASE_DIR}  WORK_DIR={WORK_DIR}  WORK_ROOT={WORK_ROOT}")

@@ -10,18 +10,17 @@ from core.metrics import collect_predictions
 from core.plots import plot_confusion_matrix, plot_f1_curves, plot_pr_curves
 from . import ultralytics_detector  # noqa: F401
 
-DEFAULT_CHECKPOINT_CANDIDATES = [
-    f"runs/{cfg.MODEL_NAME}/weights/best.pt",
-    f"detection_runs/{cfg.MODEL_NAME}/weights/best.pt",  # legacy
-]
-
-
-def find_checkpoint(candidates=None) -> str:
-    candidates = candidates or DEFAULT_CHECKPOINT_CANDIDATES
+def find_checkpoint(variant: str = "mix") -> str:
+    candidates = [
+        str(cfg.WORK_ROOT / "output" / f"yolov12m_base_{variant}" / "weights" / "best.pt"),
+    ]
     for p in candidates:
         if os.path.isfile(p):
             return p
-    raise FileNotFoundError(f"No checkpoint found. Tried: {candidates}")
+    raise FileNotFoundError(
+        f"No checkpoint found. Tried: {candidates}\n"
+        f"Run 'bash baseline.sh train {variant}' first."
+    )
 
 
 def main(checkpoint=None, *, prepare_data=True, **overrides) -> None:
@@ -39,7 +38,7 @@ def main(checkpoint=None, *, prepare_data=True, **overrides) -> None:
 
     model = DetectionModel.create(cfg.MODEL_NAME, num_classes=cfg.NUM_CLASSES,
                                   class_names=cfg.CLASS_NAMES, device=cfg.DEVICE)
-    model.load(checkpoint or find_checkpoint())
+    model.load(checkpoint or find_checkpoint(cfg.DATA_VARIANT))
 
     test_metrics = model.evaluate(iou_threshold=cfg.IOU_THRESHOLD,
                                    score_threshold=cfg.SCORE_THRESHOLD,

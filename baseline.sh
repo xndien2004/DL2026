@@ -15,7 +15,7 @@
 #   $1 MODE     full | train | eval       (default: full)
 #   $2 VARIANT  mix | bright | dark | all  (default: mix)
 #
-# Output: runs/yolov12m_<variant>/weights/best.pt
+# Output: output/yolov12m_base_<variant>/weights/best.pt
 #         (SimAM pipeline reads this as its pretrained checkpoint)
 #
 # Env:
@@ -30,7 +30,6 @@ MODE="${1:-full}"
 VARIANT_ARG="${2:-mix}"
 
 DATA_AUG_DIR="${SCRIPT_DIR}/data/DataAug/DataDrillDetect/DataAug"
-RUNS_PARENT="${SCRIPT_DIR}/runs"
 PYTHON="${PYTHON:-python3}"
 
 case "${VARIANT_ARG}" in
@@ -54,39 +53,26 @@ echo "============================================================"
 run_variant() {
     local VARIANT="$1"
     local WORK_DIR="${SCRIPT_DIR}/yolo_dataset_${VARIANT}"
-    local DEFAULT_RUN_DIR="${RUNS_PARENT}/yolov12m"
-    local RUN_DIR="${RUNS_PARENT}/yolov12m_${VARIANT}"
+    local OUTPUT_DIR="${SCRIPT_DIR}/output/yolov12m_base_${VARIANT}"
 
     echo
-    echo "--- VARIANT=${VARIANT}  work=${WORK_DIR}  out=${RUN_DIR} ---"
+    echo "--- VARIANT=${VARIANT}  work=${WORK_DIR}  out=${OUTPUT_DIR} ---"
 
     # ---- Train ----------------------------------------------------------------
     if [[ "${MODE}" != "eval" ]]; then
-        # Start clean so Ultralytics writes to the default name (yolov12m).
-        [[ -d "${DEFAULT_RUN_DIR}" ]] && rm -rf "${DEFAULT_RUN_DIR}"
-
         "${PYTHON}" "${SCRIPT_DIR}/run_baseline_train.py" \
             --base-dir "${DATA_AUG_DIR}" \
             --work-dir "${WORK_DIR}" \
             --variant  "${VARIANT}"
-
-        # Rename runs/yolov12m → runs/yolov12m_<variant>
-        if [[ -d "${DEFAULT_RUN_DIR}" ]]; then
-            rm -rf "${RUN_DIR}"
-            mv "${DEFAULT_RUN_DIR}" "${RUN_DIR}"
-            echo ">>> Saved → ${RUN_DIR}"
-        fi
+        echo ">>> Saved → ${OUTPUT_DIR}"
     fi
 
     # ---- Eval -----------------------------------------------------------------
     if [[ "${MODE}" != "train" ]]; then
-        local CKPT=""
-        for cand in "${RUN_DIR}/weights/best.pt" "${DEFAULT_RUN_DIR}/weights/best.pt"; do
-            [[ -f "${cand}" ]] && { CKPT="${cand}"; break; }
-        done
+        local CKPT="${OUTPUT_DIR}/weights/best.pt"
 
-        if [[ -z "${CKPT}" ]]; then
-            echo "ERROR: no baseline checkpoint found for variant '${VARIANT}'." >&2
+        if [[ ! -f "${CKPT}" ]]; then
+            echo "ERROR: no baseline checkpoint found at ${CKPT}" >&2
             echo "       Run 'bash baseline.sh train ${VARIANT}' first." >&2
             exit 1
         fi
