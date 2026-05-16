@@ -98,6 +98,10 @@ def main(**overrides) -> None:
         output_name=output_name,
     )
 
+    out_dir = cfg.WORK_ROOT / "output" / output_name
+    out_dir.mkdir(parents=True, exist_ok=True)
+    model.plot_training_curves(save_path=str(out_dir / "training_curves.png"))
+
 
 if __name__ == "__main__":
     main()

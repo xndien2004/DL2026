@@ -1,6 +1,7 @@
 """Evaluation entry point — baseline."""
 from __future__ import annotations
 import os
+from pathlib import Path
 from . import config as cfg
 from core.data_preparation import build_dataset, split_dataframes
 from core.dataset import build_dataloaders
@@ -36,6 +37,9 @@ def main(checkpoint=None, *, prepare_data=True, **overrides) -> None:
     loaders = build_dataloaders(train_df, valid_df, test_df,
                                 batch_size=cfg.BATCH_SIZE, work_dir=cfg.WORK_DIR)
 
+    out_dir = cfg.WORK_ROOT / "output" / f"yolov12m_base_{cfg.DATA_VARIANT}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     model = DetectionModel.create(cfg.MODEL_NAME, num_classes=cfg.NUM_CLASSES,
                                   class_names=cfg.CLASS_NAMES, device=cfg.DEVICE)
     model.load(checkpoint or find_checkpoint(cfg.DATA_VARIANT))
@@ -44,23 +48,25 @@ def main(checkpoint=None, *, prepare_data=True, **overrides) -> None:
                                    score_threshold=cfg.SCORE_THRESHOLD,
                                    base_dir=cfg.WORK_DIR, split="test")
     model.print_metrics(test_metrics)
-    model.plot_metrics_per_class(test_metrics, save_path=f"{cfg.MODEL_NAME}_test_metrics.png")
-    model.plot_training_curves(save_path=f"{cfg.MODEL_NAME}_training_curves.png")
+    model.plot_metrics_per_class(test_metrics,
+                                 save_path=str(out_dir / "test_metrics_per_class.png"))
+    model.plot_training_curves(save_path=str(out_dir / "training_curves.png"))
 
     dets, gts = collect_predictions(model, loaders["test_dataset"], score_threshold=0.01)
     plot_confusion_matrix(model, dets, gts, score_thr=cfg.SCORE_THRESHOLD,
-                          iou_thr=cfg.IOU_THRESHOLD, save_path=f"{cfg.MODEL_NAME}_confusion_matrix.png")
+                          iou_thr=cfg.IOU_THRESHOLD,
+                          save_path=str(out_dir / "confusion_matrix.png"))
     plot_pr_curves(model, dets, gts, test_metrics, iou_thr=cfg.IOU_THRESHOLD,
-                   save_path=f"{cfg.MODEL_NAME}_pr_curves.png")
+                   save_path=str(out_dir / "pr_curves.png"))
     plot_f1_curves(model, dets, gts, iou_thr=cfg.IOU_THRESHOLD,
-                   save_path=f"{cfg.MODEL_NAME}_f1_curves.png")
+                   save_path=str(out_dir / "f1_curves.png"))
     export_predictions_csv(cfg.MODEL_NAME, dets, gts,
                            image_ids=loaders["test_dataset"].image_ids,
                            iou_thr=cfg.IOU_THRESHOLD, score_thr=cfg.SCORE_THRESHOLD,
-                           csv_out=f"{cfg.MODEL_NAME}_test_predictions.csv",
+                           csv_out=str(out_dir / "test_predictions.csv"),
                            label_to_name=cfg.LABEL_TO_NAME)
     model.visualize_predictions(test_df, cfg.WORK_DIR, n_examples=cfg.N_EXAMPLES,
-                                save_dir=f"{cfg.MODEL_NAME}_predictions",
+                                save_dir=str(out_dir / "predictions"),
                                 score_threshold=cfg.SCORE_THRESHOLD)
 
 

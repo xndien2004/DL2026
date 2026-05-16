@@ -53,7 +53,8 @@ def main(checkpoint: str | None = None, **overrides) -> None:
                                 batch_size=cfg.BATCH_SIZE, work_dir=cfg.WORK_DIR)
 
     train_model_name = _setup_model_name()
-    out_prefix = train_model_name
+    out_dir = cfg.WORK_ROOT / "output" / f"yolov12m_new_{cfg.DATA_VARIANT}"
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     model = DetectionModel.create(train_model_name, num_classes=cfg.NUM_CLASSES,
                                   class_names=cfg.CLASS_NAMES, device=cfg.DEVICE)
@@ -65,8 +66,9 @@ def main(checkpoint: str | None = None, **overrides) -> None:
                                    score_threshold=cfg.SCORE_THRESHOLD,
                                    base_dir=cfg.WORK_DIR, split="test")
     model.print_metrics(test_metrics)
-    model.plot_metrics_per_class(test_metrics, save_path=f"{out_prefix}_test_metrics.png")
-    model.plot_training_curves(save_path=f"{out_prefix}_training_curves.png")
+    model.plot_metrics_per_class(test_metrics,
+                                 save_path=str(out_dir / "test_metrics_per_class.png"))
+    model.plot_training_curves(save_path=str(out_dir / "training_curves.png"))
 
     print("Collecting raw predictions...")
     dets, gts = collect_predictions(model, loaders["test_dataset"], score_threshold=0.01)
@@ -74,22 +76,22 @@ def main(checkpoint: str | None = None, **overrides) -> None:
 
     plot_confusion_matrix(model, dets, gts,
                           score_thr=cfg.SCORE_THRESHOLD, iou_thr=cfg.IOU_THRESHOLD,
-                          save_path=f"{out_prefix}_confusion_matrix.png")
+                          save_path=str(out_dir / "confusion_matrix.png"))
     plot_pr_curves(model, dets, gts, test_metrics,
                    iou_thr=cfg.IOU_THRESHOLD,
-                   save_path=f"{out_prefix}_pr_curves.png")
+                   save_path=str(out_dir / "pr_curves.png"))
     plot_f1_curves(model, dets, gts,
                    iou_thr=cfg.IOU_THRESHOLD,
-                   save_path=f"{out_prefix}_f1_curves.png")
+                   save_path=str(out_dir / "f1_curves.png"))
 
-    export_predictions_csv(out_prefix, dets, gts,
+    export_predictions_csv(train_model_name, dets, gts,
                            image_ids=loaders["test_dataset"].image_ids,
                            iou_thr=cfg.IOU_THRESHOLD, score_thr=cfg.SCORE_THRESHOLD,
-                           csv_out=f"{out_prefix}_test_predictions.csv",
+                           csv_out=str(out_dir / "test_predictions.csv"),
                            label_to_name=cfg.LABEL_TO_NAME)
 
     model.visualize_predictions(test_df, cfg.WORK_DIR, n_examples=cfg.N_EXAMPLES,
-                                save_dir=f"{out_prefix}_predictions",
+                                save_dir=str(out_dir / "predictions"),
                                 score_threshold=cfg.SCORE_THRESHOLD)
 
 
