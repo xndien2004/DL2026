@@ -95,7 +95,7 @@ class UltralyticsDetector(DetectionModel):
             self.model = YOLO(weights)
             print(f"[UltralyticsDetector] Loaded {self.model_name} ({weights})")
 
-    def _create_data_yaml(self, base_dir) -> str:
+    def _create_data_yaml(self, base_dir, subfolder: str | None = None) -> str:
         # Auto-pick val vs valid based on what exists on disk.
         def _pick(root: Path, candidates: list[str]) -> str:
             for c in candidates:
@@ -116,7 +116,7 @@ class UltralyticsDetector(DetectionModel):
             "nc": self.num_classes,
             "names": list(self.class_names),
         }
-        out_dir = config.WORK_ROOT / "output"
+        out_dir = config.WORK_ROOT / "output" / (subfolder or self.model_name)
         out_dir.mkdir(parents=True, exist_ok=True)
         yaml_path = str(out_dir / "yolo_data.yaml")
         with open(yaml_path, "w") as f:
@@ -139,9 +139,8 @@ class UltralyticsDetector(DetectionModel):
         aug = augmentation or {}
         kwargs = {**aug, **kwargs}
 
-        self.yolo_data_yaml = self._create_data_yaml(base_dir)
-
         run_name = output_name or self.model_name
+        self.yolo_data_yaml = self._create_data_yaml(base_dir, subfolder=run_name)
         device_str, _workers = _get_device_str(workers)
         self.yolo_run_dir = str(config.WORK_ROOT / "output" / run_name)
 
@@ -168,14 +167,16 @@ class UltralyticsDetector(DetectionModel):
                  base_dir=None, imgsz: int = 640, batch: int = 16,
                  split: str = "test") -> dict:
         base_dir = base_dir or config.WORK_DIR
+        val_name = os.path.basename(self.yolo_run_dir) if self.yolo_run_dir else self.model_name
         if not self.yolo_data_yaml:
-            self.yolo_data_yaml = self._create_data_yaml(base_dir)
+            self.yolo_data_yaml = self._create_data_yaml(base_dir, subfolder=val_name)
         device_str, _ = _get_device_str()
 
         yolo_metrics = self.model.val(
             data=self.yolo_data_yaml, split=split, imgsz=imgsz, batch=batch,
             device=device_str, plots=True, verbose=True,
             conf=score_threshold, iou=iou_threshold, augment=True,
+            project=str(config.WORK_ROOT / "output"), name=val_name, exist_ok=True,
         )
 
         nt = np.array(getattr(yolo_metrics.box, "nt_per_class", None)

@@ -84,7 +84,7 @@ class UltralyticsDetector(DetectionModel):
         self.model = YOLO(weights)
         print(f"[UltralyticsDetector] Loaded {self.model_name} ({weights})")
 
-    def _create_data_yaml(self, base_dir) -> str:
+    def _create_data_yaml(self, base_dir, subfolder: str | None = None) -> str:
         cfg = {
             "path": str(base_dir),
             "train": "train/images",
@@ -93,7 +93,7 @@ class UltralyticsDetector(DetectionModel):
             "nc": len(self.class_names),
             "names": list(self.class_names),
         }
-        out_dir = WORK_ROOT / "output"
+        out_dir = WORK_ROOT / "output" / (subfolder or self.model_name)
         out_dir.mkdir(parents=True, exist_ok=True)
         yaml_path = str(out_dir / f"{self.model_name}_data.yaml")
         with open(yaml_path, "w") as f:
@@ -107,11 +107,11 @@ class UltralyticsDetector(DetectionModel):
               augmentation: dict | None = None, output_name: str | None = None, **kwargs) -> None:
         from ultralytics import YOLO
         base_dir = base_dir or BASE_DIR
-        self.yolo_data_yaml = self._create_data_yaml(base_dir)
-        device_str, _workers = _get_device_str(workers)
         aug = augmentation or {}
         run_name = output_name or self.model_name
         self._run_name = run_name
+        self.yolo_data_yaml = self._create_data_yaml(base_dir, subfolder=run_name)
+        device_str, _workers = _get_device_str(workers)
 
         train_kwargs = dict(
             data=self.yolo_data_yaml, epochs=epochs, imgsz=imgsz, batch=batch,
@@ -158,11 +158,10 @@ class UltralyticsDetector(DetectionModel):
     def evaluate(self, iou_threshold: float = 0.5, score_threshold: float = 0.3,
                  base_dir=None, imgsz: int = 640, batch: int = 16, split: str = "val") -> dict:
         base_dir = base_dir or BASE_DIR
-        if not self.yolo_data_yaml:
-            self.yolo_data_yaml = self._create_data_yaml(base_dir)
-        device_str, _ = _get_device_str()
-
         val_name = os.path.basename(self.yolo_run_dir) if self.yolo_run_dir else self.model_name
+        if not self.yolo_data_yaml:
+            self.yolo_data_yaml = self._create_data_yaml(base_dir, subfolder=val_name)
+        device_str, _ = _get_device_str()
         yolo_metrics = self.model.val(
             data=self.yolo_data_yaml, split=split, imgsz=imgsz, batch=batch,
             device=device_str, plots=True, verbose=True,
