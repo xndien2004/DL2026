@@ -17,14 +17,6 @@ _EVAL_FLAGS = {
     "imgsz": "IMGSZ", "batch": "BATCH_SIZE_YOLO", "n_examples": "N_EXAMPLES",
     "custom_arch": "CUSTOM_ARCH", "pretrained": "PRETRAINED_CKPT",
 }
-_PSEUDO_FLAGS = {
-    "model": "MODEL_NAME", "epochs": "NUM_EPOCHS", "imgsz": "IMGSZ",
-    "batch": "BATCH_SIZE_YOLO", "patience": "PATIENCE",
-    "base_dir": "BASE_DIR", "work_dir": "WORK_DIR", "variant": "DATA_VARIANT",
-    "pretrained": "PRETRAINED_CKPT", "custom_arch": "CUSTOM_ARCH",
-    "pseudo_conf": "PSEUDO_CONF", "pseudo_iou": "PSEUDO_IOU_OVERLAP",
-}
-
 
 def parse_train_args(argv=None) -> dict:
     parser = argparse.ArgumentParser(description="Train YOLOv12m + SimAM (V4).")
@@ -40,9 +32,3 @@ def parse_eval_args(argv=None):
     return args.checkpoint, _to_overrides(args, _EVAL_FLAGS)
 
 
-def parse_pseudo_args(argv=None):
-    parser = argparse.ArgumentParser(description="Generate pseudo-labels and retrain.")
-    parser.add_argument("checkpoint", nargs="?", default=None)
-    _add_common(parser, _PSEUDO_FLAGS)
-    args = parser.parse_args(argv)
-    return args.checkpoint, _to_overrides(args, _PSEUDO_FLAGS)

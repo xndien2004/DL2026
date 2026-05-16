@@ -49,6 +49,8 @@ def main(**overrides) -> None:
     total = sum(p.numel() for p in model.model.parameters())
     print(f"  Total params: {total:,}")
 
+    output_name = f"yolov12m_new_{cfg.DATA_VARIANT}"
+
     if not cfg.SKIP_PHASE_1_2:
         print("=" * 70)
         print("Phase 1: freeze=21, train Detect head + SimAM (3 epochs)")
@@ -62,6 +64,7 @@ def main(**overrides) -> None:
             box=7.5, cls=2.0, dfl=1.5,
             label_smoothing=0.05, nbs=64, rect=False,
             freeze=21, save_period=2,
+            output_name=output_name,
         )
 
     if not cfg.SKIP_PHASE_1_2:
@@ -77,6 +80,7 @@ def main(**overrides) -> None:
             box=7.5, cls=2.0, dfl=1.5,
             label_smoothing=0.05, nbs=64, rect=False,
             freeze=10, save_period=3,
+            output_name=output_name,
         )
 
     print("=" * 70)
@@ -91,6 +95,7 @@ def main(**overrides) -> None:
         box=8.0, cls=2.5, dfl=2.0,
         label_smoothing=0.10, dropout=0.15,
         nbs=64, rect=False, freeze=0, save_period=5,
+        output_name=output_name,
     )
 
 

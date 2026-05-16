@@ -126,7 +126,7 @@ class UltralyticsDetector(DetectionModel):
     def train(self, epochs: int = 75, lr: float = 0.001,
               base_dir=None, imgsz: int = 640, batch: int = 24, patience: int = 15,
               optimizer: str = "SGD", workers: int = 2,
-              augmentation: dict | None = None, **kwargs) -> None:
+              augmentation: dict | None = None, output_name: str | None = None, **kwargs) -> None:
         from ultralytics import YOLO, settings as ul_settings
         ul_settings.update({
             "mlflow": False, "neptune": False, "comet": False,
@@ -134,20 +134,20 @@ class UltralyticsDetector(DetectionModel):
         })
 
         base_dir = base_dir or config.WORK_DIR
-        # Spread aug into kwargs (kwargs override aug on collision)
         aug = augmentation or {}
         kwargs = {**aug, **kwargs}
 
         self.yolo_data_yaml = self._create_data_yaml(base_dir)
 
+        run_name = output_name or self.model_name
         device_str, _workers = _get_device_str(workers)
-        self.yolo_run_dir = str(config.WORK_ROOT / "runs" / self.model_name)
+        self.yolo_run_dir = str(config.WORK_ROOT / "output" / run_name)
 
         # Phase resume: copy best.pt out of save_dir before reloading
         # (ultralytics may clear save_dir/weights/ on exist_ok=True restart).
         best_pt = Path(self.yolo_run_dir) / "weights" / "best.pt"
         if best_pt.exists():
-            safe_resume = config.WORK_ROOT / f"{self.model_name}_resume.pt"
+            safe_resume = config.WORK_ROOT / f"{run_name}_resume.pt"
             shutil.copy(str(best_pt), str(safe_resume))
             self.model = YOLO(str(safe_resume))
             print(f"[Phase resume] Copied {best_pt} -> {safe_resume} (DDP-safe)")
@@ -156,7 +156,7 @@ class UltralyticsDetector(DetectionModel):
             data=self.yolo_data_yaml, epochs=epochs, lr0=lr,
             imgsz=imgsz, batch=batch, patience=patience, optimizer=optimizer,
             device=device_str, workers=_workers,
-            project=str(config.WORK_ROOT / "runs"), name=self.model_name,
+            project=str(config.WORK_ROOT / "output"), name=run_name,
             exist_ok=True, verbose=True, **kwargs,
         )
         print(f"\n{self.model_name} phase finished (epochs={epochs}, lr={lr})")

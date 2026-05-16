@@ -21,6 +21,7 @@ def main(**overrides) -> None:
         cfg.MODEL_NAME, num_classes=cfg.NUM_CLASSES,
         class_names=cfg.CLASS_NAMES, device=cfg.DEVICE,
     )
+    output_name = f"yolov12m_base_{cfg.DATA_VARIANT}"
     model.train(
         epochs=cfg.NUM_EPOCHS, lr=cfg.LEARNING_RATE,
         base_dir=cfg.WORK_DIR, imgsz=cfg.IMGSZ,
@@ -29,6 +30,7 @@ def main(**overrides) -> None:
         close_mosaic=5, cos_lr=True, warmup_epochs=5,
         warmup_momentum=0.5, box=7.5, cls=2.0, dfl=1.5,
         label_smoothing=0.05, nbs=64, rect=False,
+        output_name=output_name,
     )
 
 

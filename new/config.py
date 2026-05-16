@@ -26,7 +26,7 @@ BASE_DIR = (WORK_ROOT / "data" / "DataAug").resolve()
 WORK_DIR = WORK_ROOT / "yolo_dataset"
 
 # Pretrained checkpoint to fine-tune from. Override via CLI or env var.
-PRETRAINED_CKPT = str((WORK_ROOT / "runs" / "yolov12m" / "weights" / "best.pt").resolve())
+PRETRAINED_CKPT = str((WORK_ROOT / "output" / "yolov12m_base_mix" / "weights" / "best.pt").resolve())
 
 
 # ---------------------------------------------------------------------------
@@ -82,13 +82,6 @@ AUGMENTATION = {
     "copy_paste": 0.2,
     "erasing": 0.05,
 }
-
-
-# ---------------------------------------------------------------------------
-# Pseudo-label settings
-# ---------------------------------------------------------------------------
-PSEUDO_CONF = 0.85
-PSEUDO_IOU_OVERLAP = 0.30
 
 
 _PATH_FIELDS = {"BASE_DIR", "WORK_DIR", "WORK_ROOT"}
