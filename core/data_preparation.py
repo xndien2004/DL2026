@@ -23,13 +23,34 @@ def _norm_variant(v, default="mix"):
     return norm
 
 
+def _find_data_root(base_dir) -> Path:
+    """Return the directory that actually contains train/val/test splits.
+
+    If base_dir itself has a 'train' child we use it as-is.  Otherwise we
+    walk up to 4 levels deep looking for the first directory that contains
+    both a 'train' folder and either 'val' or 'valid'.  This handles datasets
+    that are nested one or more levels inside the supplied base_dir (e.g.
+    base_dir/DataDrillDetect/DataAug/train/…).
+    """
+    base = Path(base_dir)
+    if (base / "train").is_dir():
+        return base
+    for candidate in sorted(base.rglob("train")):
+        parent = candidate.parent
+        if (parent / "val").is_dir() or (parent / "valid").is_dir():
+            print(f"[data_preparation] auto-discovered data root: {parent}")
+            return parent
+    return base
+
+
 def _resolve_split_root(base_dir, split):
     aliases = {"train": ["train"], "val": ["val", "valid"], "valid": ["valid", "val"], "test": ["test"]}
+    root = _find_data_root(base_dir)
     for s in aliases.get(split, [split]):
-        p = Path(base_dir) / s
+        p = root / s
         if p.is_dir():
             return p
-    return Path(base_dir) / split
+    return root / split
 
 
 def _infer_lighting(fn, path):
@@ -42,6 +63,7 @@ def _infer_lighting(fn, path):
 def parse_coco_collect(base_dir, split, data_variant="mix", num_classes=5):
     """Walk a split folder, merge image metadata + COCO annotations."""
     variant = _norm_variant(data_variant)
+    base_dir = _find_data_root(base_dir)
     root = _resolve_split_root(base_dir, split)
 
     cands: list[Path] = []

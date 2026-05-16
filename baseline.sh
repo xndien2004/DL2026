@@ -29,7 +29,7 @@ cd "${SCRIPT_DIR}"
 MODE="${1:-full}"
 VARIANT_ARG="${2:-mix}"
 
-DATA_AUG_DIR="${SCRIPT_DIR}/data/DataAug/DataDrillDetect/DataAug"
+DATA_AUG_DIR="/home/fit02/dien_workspace/data/DataAug/DataDrillDetect/DataAug"
 PYTHON="${PYTHON:-python3}"
 
 case "${VARIANT_ARG}" in
