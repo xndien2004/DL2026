@@ -26,7 +26,7 @@ BASE_DIR = (WORK_ROOT / "data" / "DataAug").resolve()
 WORK_DIR = WORK_ROOT / "yolo_dataset"
 
 # Pretrained checkpoint to fine-tune from. Override via CLI or env var.
-PRETRAINED_CKPT = str((WORK_ROOT / "output" / "yolov12m_base_mix" / "weights" / "best.pt").resolve())
+PRETRAINED_CKPT = str((WORK_ROOT / "output" / f"{MODEL_NAME}_base_{DATA_VARIANT}" / "weights" / "best.pt").resolve())
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +113,7 @@ def apply_overrides(**kwargs) -> None:
     if "DATA_VARIANT" in kwargs and "PRETRAINED_CKPT" not in kwargs:
         variant = mod.DATA_VARIANT
         mod.PRETRAINED_CKPT = str(
-            (mod.WORK_ROOT / "output" / f"yolov12m_base_{variant}" / "weights" / "best.pt").resolve()
+            (mod.WORK_ROOT / "output" / f"{mod.MODEL_NAME}_base_{variant}" / "weights" / "best.pt").resolve()
         )
 
 

@@ -49,7 +49,7 @@ def main(**overrides) -> None:
     total = sum(p.numel() for p in model.model.parameters())
     print(f"  Total params: {total:,}")
 
-    output_name = f"yolov12m_new_{cfg.DATA_VARIANT}"
+    output_name = f"{cfg.MODEL_NAME}_new_{cfg.DATA_VARIANT}"
 
     if not cfg.SKIP_PHASE_1_2:
         print("=" * 70)

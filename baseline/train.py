@@ -21,7 +21,7 @@ def main(**overrides) -> None:
         cfg.MODEL_NAME, num_classes=cfg.NUM_CLASSES,
         class_names=cfg.CLASS_NAMES, device=cfg.DEVICE,
     )
-    output_name = f"yolov12m_base_{cfg.DATA_VARIANT}"
+    output_name = f"{cfg.MODEL_NAME}_base_{cfg.DATA_VARIANT}"
     model.train(
         epochs=cfg.NUM_EPOCHS, lr=cfg.LEARNING_RATE,
         base_dir=cfg.WORK_DIR, imgsz=cfg.IMGSZ,

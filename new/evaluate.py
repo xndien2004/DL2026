@@ -28,7 +28,7 @@ def _setup_model_name() -> str:
 def find_checkpoint(model_name: str) -> str:
     variant = cfg.DATA_VARIANT
     candidates = [
-        str(cfg.WORK_ROOT / "output" / f"yolov12m_new_{variant}" / "weights" / "best.pt"),
+        str(cfg.WORK_ROOT / "output" / f"{cfg.MODEL_NAME}_new_{variant}" / "weights" / "best.pt"),
         cfg.PRETRAINED_CKPT,
     ]
     for p in candidates:
@@ -53,7 +53,7 @@ def main(checkpoint: str | None = None, **overrides) -> None:
                                 batch_size=cfg.BATCH_SIZE, work_dir=cfg.WORK_DIR)
 
     train_model_name = _setup_model_name()
-    out_dir = cfg.WORK_ROOT / "output" / f"yolov12m_new_{cfg.DATA_VARIANT}"
+    out_dir = cfg.WORK_ROOT / "output" / f"{cfg.MODEL_NAME}_new_{cfg.DATA_VARIANT}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     model = DetectionModel.create(train_model_name, num_classes=cfg.NUM_CLASSES,

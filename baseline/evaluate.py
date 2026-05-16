@@ -13,7 +13,7 @@ from . import ultralytics_detector  # noqa: F401
 
 def find_checkpoint(variant: str = "mix") -> str:
     candidates = [
-        str(cfg.WORK_ROOT / "output" / f"yolov12m_base_{variant}" / "weights" / "best.pt"),
+        str(cfg.WORK_ROOT / "output" / f"{cfg.MODEL_NAME}_base_{variant}" / "weights" / "best.pt"),
     ]
     for p in candidates:
         if os.path.isfile(p):
@@ -37,7 +37,7 @@ def main(checkpoint=None, *, prepare_data=True, **overrides) -> None:
     loaders = build_dataloaders(train_df, valid_df, test_df,
                                 batch_size=cfg.BATCH_SIZE, work_dir=cfg.WORK_DIR)
 
-    out_dir = cfg.WORK_ROOT / "output" / f"yolov12m_base_{cfg.DATA_VARIANT}"
+    out_dir = cfg.WORK_ROOT / "output" / f"{cfg.MODEL_NAME}_base_{cfg.DATA_VARIANT}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     model = DetectionModel.create(cfg.MODEL_NAME, num_classes=cfg.NUM_CLASSES,
