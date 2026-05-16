@@ -76,13 +76,13 @@ def main(checkpoint: str | None = None, **overrides) -> None:
 
     plot_confusion_matrix(model, dets, gts,
                           score_thr=cfg.SCORE_THRESHOLD, iou_thr=cfg.IOU_THRESHOLD,
-                          save_path=str(out_dir / "confusion_matrix.png"))
+                          save_path=str(out_dir / "test_confusion_matrix.png"))
     plot_pr_curves(model, dets, gts, test_metrics,
                    iou_thr=cfg.IOU_THRESHOLD,
-                   save_path=str(out_dir / "pr_curves.png"))
+                   save_path=str(out_dir / "test_pr_curves.png"))
     plot_f1_curves(model, dets, gts,
                    iou_thr=cfg.IOU_THRESHOLD,
-                   save_path=str(out_dir / "f1_curves.png"))
+                   save_path=str(out_dir / "test_f1_curves.png"))
 
     export_predictions_csv(train_model_name, dets, gts,
                            image_ids=loaders["test_dataset"].image_ids,
@@ -91,7 +91,7 @@ def main(checkpoint: str | None = None, **overrides) -> None:
                            label_to_name=cfg.LABEL_TO_NAME)
 
     model.visualize_predictions(test_df, cfg.WORK_DIR, n_examples=cfg.N_EXAMPLES,
-                                save_dir=str(out_dir / "predictions"),
+                                save_dir=str(out_dir / "test_predictions"),
                                 score_threshold=cfg.SCORE_THRESHOLD)
 
 
