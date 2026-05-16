@@ -93,7 +93,9 @@ class UltralyticsDetector(DetectionModel):
             "nc": len(self.class_names),
             "names": list(self.class_names),
         }
-        yaml_path = f"{self.model_name}_data.yaml"
+        out_dir = WORK_ROOT / "output"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        yaml_path = str(out_dir / f"{self.model_name}_data.yaml")
         with open(yaml_path, "w") as f:
             yaml.dump(cfg, f, default_flow_style=False)
         return yaml_path
@@ -160,10 +162,12 @@ class UltralyticsDetector(DetectionModel):
             self.yolo_data_yaml = self._create_data_yaml(base_dir)
         device_str, _ = _get_device_str()
 
+        val_name = os.path.basename(self.yolo_run_dir) if self.yolo_run_dir else self.model_name
         yolo_metrics = self.model.val(
             data=self.yolo_data_yaml, split=split, imgsz=imgsz, batch=batch,
             device=device_str, plots=True, verbose=True,
             conf=score_threshold, iou=iou_threshold,
+            project=str(WORK_ROOT / "output"), name=val_name, exist_ok=True,
         )
 
         nt = np.array(getattr(yolo_metrics.box, "nt_per_class", None)

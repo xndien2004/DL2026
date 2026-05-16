@@ -116,7 +116,9 @@ class UltralyticsDetector(DetectionModel):
             "nc": self.num_classes,
             "names": list(self.class_names),
         }
-        yaml_path = str(config.WORK_ROOT / "yolo_data.yaml")
+        out_dir = config.WORK_ROOT / "output"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        yaml_path = str(out_dir / "yolo_data.yaml")
         with open(yaml_path, "w") as f:
             _yaml.dump(data_dict, f)
         print(f"[data.yaml] train={train_split}  val={val_split}  test={test_split}")
@@ -147,7 +149,7 @@ class UltralyticsDetector(DetectionModel):
         # (ultralytics may clear save_dir/weights/ on exist_ok=True restart).
         best_pt = Path(self.yolo_run_dir) / "weights" / "best.pt"
         if best_pt.exists():
-            safe_resume = config.WORK_ROOT / f"{run_name}_resume.pt"
+            safe_resume = config.WORK_ROOT / "output" / f"{run_name}_resume.pt"
             shutil.copy(str(best_pt), str(safe_resume))
             self.model = YOLO(str(safe_resume))
             print(f"[Phase resume] Copied {best_pt} -> {safe_resume} (DDP-safe)")
